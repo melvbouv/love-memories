@@ -93,12 +93,11 @@ export function usePhotos() {
             });
 
             // e) stockage local
-            await idbKeyval.set(id, compressed);
-            await idbKeyval.set(`${id}-meta`, dateTaken);
-
-            // f) mise à jour de l’état
+            await idbKeyval.set(key, compressed);  // ✅ key au lieu de id
+            await idbKeyval.set(`${key}-meta`, dateTaken);
+            
             setPhotos((prev) => {
-                const next = [...prev, { id, url: `/api/file/${key}`, dateTaken }];
+                const next = [...prev, { id: key, url: `/api/file/${key}`, dateTaken }];
                 next.sort((a, b) => a.dateTaken - b.dateTaken);
                 return next;
             });
@@ -107,20 +106,19 @@ export function usePhotos() {
 
     // ─── 3) Suppression corrigée (local + KV + R2) ───
     async function remove(id: string) {
-        // ✅ Si id commence déjà par photos/, utilise tel quel, sinon ajoute le préfixe
-        const key = id.startsWith("photos/") ? id : `photos/${id}`;
-    
+        
+        const key = id; // id est déjà "photos/{uuid}"
+
         try {
             const res = await fetch(`/api/photos/${encodeURIComponent(key)}`, { method: "DELETE" });
             if (!res.ok) throw new Error(`Échec suppression serveur : ${res.statusText}`);
-    
-            await idbKeyval.del(id);
-            await idbKeyval.del(`${id}-meta`);
-            setPhotos((prev) => prev.filter((p) => p.id !== id));
+        
+            await idbKeyval.del(key);
+            await idbKeyval.del(`${key}-meta`);
+            setPhotos((prev) => prev.filter((p) => p.id !== key));
         } catch (error) {
             console.error("Erreur lors de la suppression :", error);
         }
-    }
 
     return { photos, addFiles, remove, addPhotoLocal };
 }

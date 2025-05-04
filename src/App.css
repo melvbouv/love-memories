@@ -1,0 +1,92 @@
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+.logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
+}
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
+}
+
+/* -------------------------------------------------
+   Détail : marge intérieure qui respecte la safe-area
+   -------------------------------------------------*/
+   .memory-detail {
+    /* …tes règles existantes…                              */
+    padding-top: calc(env(safe-area-inset-top, 0px) + 1rem);
+    padding-right: calc(env(safe-area-inset-right, 0px) + 1rem);
+    padding-left: calc(env(safe-area-inset-left, 0px) + 1rem);
+  }
+  
+  /* -------------------------------------------------
+     Bouton × : toujours visible même sur iPhone à encoche
+     -------------------------------------------------*/
+  .close-btn {
+    position: absolute;
+    top: calc(env(safe-area-inset-top, 0px) + 0.5rem);
+    right: calc(env(safe-area-inset-right, 0px) + 0.5rem);
+    z-index: 10;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 0;
+    font-size: 1.5rem;
+    line-height: 1;
+    background: var(--pink);
+    color: #fff;
+    cursor: pointer;
+  }
+
+.memory-detail header time {
+  font-size: 0.9rem;
+  color: #777;
+}
+
+/* ---- gallery images (corrigé) ---- */
+.gallery img {
+  width: 100%;
+  aspect-ratio: 4 / 3;   /*  ✅ limite la hauteur automatiquement  */
+  object-fit: cover;     /*    on remplit, sans bandes vides        */
+  border-radius: var(--radius);
+}
+
+/* galerie d’images */
+.gallery {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+

@@ -1,0 +1,758 @@
+/* palette douce et mobile-first */
+:root {
+    --pink: #e91e63;
+    --pink-light: #ffc1e3;
+    --grey: #fafafa;
+    --radius: 12px;
+  }
+  
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+  
+  body {
+    margin: 0;
+    font-family: system-ui, sans-serif;
+    background: var(--grey);
+    color: #333;
+  }
+  
+  button {
+    border: none;
+    border-radius: var(--radius);
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    background: var(--pink);
+    color: #fff;
+    cursor: pointer;
+  }
+  
+  button:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+  
+  #add-btn {
+    position: fixed;
+    right: 1rem;
+    bottom: 1rem;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    font-size: 2rem;
+    line-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  }
+  
+  .timeline-wrapper {
+    overflow-x: auto;
+    padding: 1rem;
+  }
+  
+  .timeline {
+    display: flex;
+    gap: 2rem;
+    padding-bottom: 2rem;
+    position: relative;
+  }
+  
+  .timeline::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 1rem;
+    height: 4px;
+    background: var(--pink-light);
+    border-radius: 2px;
+  }
+  
+  .memory-card {
+    min-width: 240px;
+    max-width: 260px;
+    background: #fff;
+    border-radius: var(--radius);
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    position: relative;
+  }
+  
+  .memory-card::before {
+    content: attr(data-date);
+    position: absolute;
+    bottom: -2.25rem;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.8rem;
+    background: var(--grey);
+    padding: 2px 6px;
+    border-radius: var(--radius);
+  }
+  
+  .memory-card img {
+    width: 100%;
+    height: 140px;
+    object-fit: cover;
+    border-radius: var(--radius);
+  }
+  
+  /* simple feuille "modal plein écran" */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.80);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+  
+  .modal {
+    width: 100%;
+    max-width: 420px;
+    background: #fff;
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .modal input,
+  .modal textarea {
+    width: 100%;
+    padding: 0.5rem;
+    font-size: 1rem;
+    border-radius: var(--radius);
+    border: 1px solid #ddd;
+  }
+  
+  .modal textarea {
+    resize: vertical;
+    min-height: 80px;
+  }
+  
+  .photo-preview {
+    display: flex;
+    gap: 0.5rem;
+    overflow-x: auto;
+  }
+  
+  .photo-preview img {
+    width: 64px;
+    height: 64px;
+    object-fit: cover;
+    border-radius: var(--radius);
+  }
+
+  /* met en évidence les cartes cliquables */
+.memory-card--clickable {
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+.memory-card--clickable:active {
+  transform: scale(0.97);
+}
+
+/* === Memory detail plein écran === */
+.memory-detail {
+  width: 100%;
+  height: 100%;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding-bottom: 4rem;           /* marge pour le bouton Fermer */
+}
+
+.memory-detail header {
+  padding: 1rem;
+}
+
+.detail-date {
+  font-style: italic;
+  margin: 0 0 0.5rem;
+}
+
+.detail-gallery {
+  display: flex;
+  flex-direction: column;
+}
+
+.detail-gallery img {
+  width: 100%;
+  height: auto;                  /* conserve le ratio, pas de crop */
+  object-fit: contain;
+}
+
+.close-btn {
+  position: fixed;
+  bottom: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.75rem 1.5rem;
+}
+
+/* ——— Fenêtre détail arrondie ——— */
+.memory-detail {
+  width: calc(100% - 2rem);
+  height: calc(100% - 2rem);
+  margin: 1rem;
+  border-radius: var(--radius);      /* nouveau */
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  position: relative;                /* pour placer les boutons */
+  padding-bottom: 4rem;
+}
+
+/* boutons bas de page */
+.close-btn,
+.delete-btn {
+  position: fixed;
+  bottom: 1rem;
+  padding: 0.75rem 1.5rem;
+}
+
+/* “Fermer” centré, “Supprimer” à gauche */
+.close-btn {
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.delete-btn {
+  left: 1rem;
+  background: #f44336;               /* rouge doux */
+  color: #fff;
+}
+
+/* ---------- BODY : petite touche romantique ---------- */
+body {
+  background: linear-gradient(180deg, #fff 0%, #fff9fb 40%, #fff 100%);
+}
+
+/* ---------- VERTICAL TIMELINE ---------- */
+.v-timeline {
+  position: relative;
+  padding: 2rem 1rem;
+}
+
+.v-timeline::before {
+  content: "";
+  position: absolute;
+  left: 32px;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--pink-light);
+  border-radius: 2px;
+}
+
+.v-entry {
+  display: flex;
+  margin-bottom: 2rem;
+}
+
+/* petit “cœur”/dot sur l’axe */
+.v-dot {
+  flex: 0 0 20px;
+  height: 20px;
+  width: 20px;
+  background: var(--pink);
+  border-radius: 50%;
+  position: relative;
+  margin-top: 4px;
+  box-shadow: 0 0 0 4px #fff, 0 0 6px rgba(0, 0, 0, 0.15);
+}
+
+.v-content {
+  flex: 1;
+  margin-left: 1.5rem;
+}
+
+/* ---------- CARD VERTICALE ---------- */
+.memory-card {
+  width: 100%;
+  max-width: unset;
+  min-width: unset;
+  background: #fff;
+  border-radius: var(--radius);
+  padding: 1rem;
+  box-shadow: 0 4px 12px rgba(233, 30, 99, 0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.memory-date {
+  font-size: 0.8rem;
+  color: var(--pink);
+  font-weight: 600;
+}
+
+/* garde l’image en format carte */
+.memory-card img {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  border-radius: var(--radius);
+}
+
+/* clic tactile + anim */
+.memory-card--clickable {
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+.memory-card--clickable:active {
+  transform: scale(0.97);
+}
+
+/* ---- VARIABLES ---- */
+:root {
+  --nav-height: 64px;
+}
+
+/* ---- NAVIGATION ---- */
+.bottom-nav {
+  position: fixed;
+  inset-block-end: 0;
+  left: 0;
+  right: 0;
+  height: var(--nav-height);
+  background: #ffffff;
+  border-top: 1px solid #eee;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  z-index: 50;
+}
+
+.bottom-nav button {
+  flex: 1;
+  height: 100%;
+  background: none;
+  border: none;
+  font-size: 1.3rem;          /* emojis */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  cursor: pointer;
+}
+
+.bottom-nav button span {
+  font-size: 0.7rem;
+}
+
+.bottom-nav .active {
+  color: var(--pink);
+}
+
+/* ---- Flottant "+" ajusté au-dessus de la nav ---- */
+#add-btn {
+  bottom: calc(var(--nav-height) + 1rem);
+}
+
+/* ----- VARIABLES GLOBALES déjà présentes ----- */
+:root {
+  --nav-height: 64px;
+  /* --radius, --pink, etc. */
+}
+
+/* =============================================
+   1) TIMELINE : on évite qu’elle disparaisse sous la nav
+   ============================================= */
+.v-timeline {
+  /* ...tes autres règles... */
+  padding-bottom: calc(var(--nav-height) + 2rem);   /* NEW */
+}
+
+/* =============================================
+   2) FENÊTRE DÉTAIL : hauteur réduite + marge basse
+   ============================================= */
+.memory-detail {
+  /* avant : height: calc(100% - 2rem); */
+  height: calc(100% - 2rem - var(--nav-height));     /* NEW */
+  padding-bottom: calc(4rem + var(--nav-height));    /* NEW (place pour boutons) */
+}
+
+/* Boutons bas : passent AU-DESSUS de la nav */
+.close-btn,
+.delete-btn {
+  bottom: calc(var(--nav-height) + 1rem);            /* NEW */
+}
+
+/* =============================================
+   3) BOUTON FLOTTANT "+" : déjà au-dessus
+   ============================================= */
+/* tu l’as déjà ▶  bottom: calc(var(--nav-height) + 1rem); */
+
+:root {
+  --nav-height: 64px;   /* déjà là */
+  --nav-gap: 1rem;      /* ← nouvelle marge d’air (16 px) */
+}
+
+/* ----- TIMELINE ----- */
+.v-timeline {
+  /* on garde 2rem pour la fin + nav + l’écart */
+  padding-bottom: calc(var(--nav-height) + var(--nav-gap) + 2rem);
+}
+
+/* ----- FENÊTRE DÉTAIL ----- */
+.memory-detail {
+  /* on enlève aussi la gap à la hauteur totale */
+  height: calc(100% - 2rem - var(--nav-height) - var(--nav-gap));
+  margin-bottom: var(--nav-gap);                 /* espace visuel */
+  padding-bottom: calc(4rem + var(--nav-height) + var(--nav-gap));
+}
+
+/* ----- BOUTONS BAS (Fermer / Supprimer / +) ----- */
+.close-btn,
+.delete-btn {
+  bottom: calc(var(--nav-height) + var(--nav-gap) + 1rem);
+}
+
+#add-btn {
+  bottom: calc(var(--nav-height) + var(--nav-gap) + 1rem);
+}
+
+/* ========= TODO CARDS / CAROUSEL ========= */
+.todo-carousel {
+  overflow: hidden;
+}
+
+.todo-inner {
+  display: flex;
+  transition: transform 0.3s ease;
+  width: 100%;
+}
+
+.todo-card {
+  min-width: 100%;
+  padding: 2rem 1rem calc(var(--nav-height) + var(--nav-gap) + 2rem);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.todo-card header h2 {
+  margin: 0;
+  text-align: center;
+  color: var(--pink);
+}
+
+.todo-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.todo-list li {
+  background: #fff;
+  border-radius: var(--radius);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+}
+
+.todo-list li.done span {
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
+.todo-list li.empty {
+  justify-content: center;
+  font-style: italic;
+  opacity: 0.7;
+}
+
+.todo-list input[type="checkbox"] {
+  margin-right: 0.75rem;
+}
+
+.add-task-btn {
+  align-self: center;
+  border: none;
+  background: var(--pink);
+  color: #fff;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+/* le bouton global "+" existe déjà (id add-btn) et reste au-dessus de la nav */
+
+/* ========= CAROUSEL (structure inchangée) ========= */
+.todo-carousel {
+  overflow: hidden;
+}
+
+.todo-inner {
+  display: flex;
+  transition: transform 0.35s ease;
+  width: 100%;
+}
+
+/* ---- chaque slide pleine largeur ---- */
+.todo-slide {
+  min-width: 100%;
+  display: flex;
+  justify-content: center;   /* centre la carte */
+  padding: 0 4vw;            /* petit respawn latéral */
+}
+
+/* ========= CARTE TO-DO ========= */
+.todo-card {
+  width: 85vw;               /* carte plus étroite que l’écran → voisines visibles */
+  max-width: 480px;
+  background: #fff;
+  border-radius: var(--radius);
+  box-shadow: 0 6px 20px rgba(233, 30, 99, 0.2);
+  padding: 1.5rem 1rem calc(var(--nav-height) + var(--nav-gap) + 2rem);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* jolie bande pastel en haut */
+.todo-card header {
+  background: var(--pink-light);
+  margin: -1.5rem -1rem 0;
+  padding: 1rem;
+  border-top-left-radius: var(--radius);
+  border-top-right-radius: var(--radius);
+}
+
+.todo-card header h2 {
+  margin: 0;
+  text-align: center;
+  color: var(--pink);
+}
+
+/* ---- Liste ---- */
+.todo-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.todo-list li {
+  background: #fff;
+  border-radius: var(--radius);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+}
+
+.todo-list li.done span {
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
+.todo-list li.empty {
+  justify-content: center;
+  font-style: italic;
+  opacity: 0.7;
+}
+
+.todo-list input[type="checkbox"] {
+  margin-right: 0.75rem;
+}
+
+/* ---- Bouton “+ tâche” ---- */
+.add-task-btn {
+  align-self: center;
+  border: none;
+  background: var(--pink);
+  color: #fff;
+  padding: 0.5rem 1.25rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+/* ========= STACKED CARDS ========= */
+.todo-stack {
+  position: relative;
+  height: calc(100vh - var(--nav-height) - var(--nav-gap) - 2rem);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 2vw;
+  perspective: 1200px;      /* un soupçon de profondeur */
+}
+
+.stack-card {
+  position: absolute;
+  transition: transform 0.35s ease, opacity 0.35s ease;
+  width: 85vw;
+  max-width: 460px;
+}
+
+/* on garde le style .todo-card existant         */
+/* (ombre, header pastel, liste à cocher, etc.)  */
+
+/* ========= empêcher tout dépassement horizontal ========= */
+html, body {
+  overflow-x: hidden;             /* évite la “traîne” latérale */
+}
+
+/* ========= STACK CONTAINER ========= */
+.todo-stack {
+  position: relative;
+  height: calc(100vh - var(--nav-height) - var(--nav-gap) - 2rem);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0 2vw;
+  perspective: 1200px;
+  overflow: hidden;               /* coupe ce qui dépasse */
+  touch-action: pan-y;            /* dit au navigateur : seul le scroll vertical est permis */
+  overscroll-behavior-x: contain; /* empêche le “bounce” horizontal iOS */
+}
+
+/* ========= CARTE EMPILÉE ========= */
+.stack-card {
+  position: absolute;
+  width: 80vw;                    /* ← 80 % du viewport */
+  max-width: 420px;
+  transition: transform 0.35s ease, opacity 0.35s ease;
+}
+
+/* .todo-card, .todo-list etc. restent inchangés */
+
+/* ---------- Boutons poubelle ---------- */
+.trash-btn {
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  margin-left: 0.5rem;
+  color: #777;
+}
+
+.trash-btn:hover {
+  color: var(--pink);
+}
+
+.todo-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;   /* place la poubelle à droite */
+}
+
+/* poubelle catégorie : coin sup. droit */
+.cat-trash {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+}
+
+/* ======== Photos ======== */
+.photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 2px;
+  padding: 2px 2px calc(var(--nav-height) + var(--nav-gap) + 2rem);
+}
+
+.photo-thumb {
+  padding: 0;
+  border: none;
+  background: none;
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  overflow: hidden;
+}
+
+.photo-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* modal plein écran */
+.photo-modal {
+  max-width: 95vw;
+  max-height: 90vh;
+  margin: 0;
+}
+
+.photo-modal img {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+
+
+/* ======== Groupes de dates ======== */
+.photo-group {
+  padding: 0 0.5rem 1.5rem;
+}
+
+.photo-date {
+  margin: 0.75rem 0 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--pink);
+}
+
+/* la grille existe déjà (.photo-grid…) */
+/* ——— 1. Grilles normales : pas de marge basse ——— */
+.photo-grid {
+  padding: 2px;                  /* avant : 2px 2px ... */
+}
+
+/* ——— 2. Dernier groupe : remet la marge de sécurité ——— */
+.photo-group:last-child .photo-grid {
+  padding-bottom: calc(var(--nav-height) + var(--nav-gap) + 2rem);
+}
+
+/* bouton “carte” jumelé au “+” */
+#map-btn {
+  position: fixed;
+  right: 1rem;
+  bottom: calc(var(--nav-height) + var(--nav-gap) + 4.5rem); /* juste au-dessus du + */
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  font-size: 1.75rem;
+  line-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--pink);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  border: none;
+  cursor: pointer;
+}
+
+.memory-map {
+  margin-top: 1rem; /* déjà mis inline, mais fais-le ici si tu préfères */
+}
+
+/* Boutons Fermer / Supprimer au-dessus de Leaflet */
+.memory-detail .close-btn,
+.memory-detail .delete-btn {
+  z-index: 1000;   /* > 800 => toujours visibles */
+}

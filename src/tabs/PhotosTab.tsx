@@ -15,62 +15,56 @@ export default function PhotosTab() {
     }, []);
   
     // la fonction corrigée :
-    const handleAdd = async (files: FileList) => {
-      // pour chaque fichier on :
-      // - compresse à <=0.5MB
-      // - lit DateTimeOriginal
-      // - upload vers R2 (/api/upload)
-      // - enregistre métadonnée (/api/photos)
-      const newEntries = await Promise.all(
-        Array.from(files).map(async (file) => {
-          // 1) compression
-          const MAX_MB = 0.5;
-          const compressed =
-            file.size > MAX_MB * 1024 * 1024
-              ? await imageCompression(file, {
-                  maxSizeMB: MAX_MB,
-                  maxWidthOrHeight: 2500,
-                  useWebWorker: true,
-                })
-              : file;
-  
-          // 2) extraction EXIF
-          let dateTaken = file.lastModified;
-          try {
-            const exif = await exifr.parse(compressed, ["DateTimeOriginal"]);
-            if (exif?.DateTimeOriginal) {
-              dateTaken = exif.DateTimeOriginal.getTime();
-            }
-          } catch {
-            /* ignore si pas d’EXIF */
-          }
-  
-          // 3) upload blob → R2
-          const fd = new FormData();
-          fd.append("file", compressed, file.name);
-          const { key } = await fetch("/api/upload", {
-            method: "POST",
-            body: fd,
-          }).then((r) => {
-            if (!r.ok) throw new Error("upload failed");
-            return r.json();
-          });
-  
-          // 4) enregistrer la métadonnée dans KV
-          await fetch("/api/photos", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ key, dateTaken }),
-          });
-  
-          return { key, dateTaken };
-        })
-      );
-  
-      // 5) recharger et mettre à jour l’état
-      const updated = await fetch("/api/photos").then((r) => r.json());
-      setPhotos(updated);
-    };
+      const handleAdd = async (files: FileList) => {
+            // [...] compression, EXIF, upload, metadata
+            await Promise.all(
+              Array.from(files).map(async (file) => {
+                // 1) compression
+                const MAX_MB = 0.5;
+                const compressed =
+                  file.size > MAX_MB * 1024 * 1024
+                    ? await imageCompression(file, {
+                        maxSizeMB: MAX_MB,
+                        maxWidthOrHeight: 2500,
+                        useWebWorker: true,
+                      })
+                    : file;
+        
+                // 2) extraction EXIF
+                let dateTaken = file.lastModified;
+                try {
+                  const exif = await exifr.parse(compressed, ["DateTimeOriginal"]);
+                  if (exif?.DateTimeOriginal) {
+                    dateTaken = exif.DateTimeOriginal.getTime();
+                  }
+                } catch {
+                  /* ignore */
+                }
+        
+                // 3) upload blob → R2
+                const fd = new FormData();
+                fd.append("file", compressed, file.name);
+                const { key } = await fetch("/api/upload", {
+                  method: "POST",
+                  body: fd,
+                }).then((r) => {
+                  if (!r.ok) throw new Error("upload failed");
+                  return r.json();
+                });
+        
+                // 4) enregistrer la métadonnée dans KV
+                await fetch("/api/photos", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ key, dateTaken }),
+                });
+              })
+            );
+        
+            // 5) recharger et mettre à jour l’état
+            const updated = await fetch("/api/photos").then((r) => r.json());
+            setPhotos(updated);
+          };
   
     return (
       <>

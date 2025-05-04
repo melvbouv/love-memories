@@ -6,42 +6,32 @@ import "dayjs/locale/fr";
 dayjs.locale("fr");
 
 export default function PhotosTab() {
-  const { photos, addFiles, remove } = usePhotos();
+  const { photos, addFiles, remove, addPhotoLocal } = usePhotos();
   const fileInput = useRef<HTMLInputElement | null>(null);
   const [current, setCurrent] = useState<string | null>(null);
 
-  // ── 1) SYNC INIT : récupérer la liste depuis KV
+  // 1) SYNC INIT : fetch /api/photos et ne stocke que les absentes
   useEffect(() => {
     fetch("/api/photos")
       .then((r) => r.json())
-      .then(
-        async (serverList: { key: string; dateTaken: number }[]) => {
-          for (const { key } of serverList) {
-            const id = key.split("/")[1];
-            // si on ne possède pas déjà cette photo en local
-            if (!photos.some((p) => p.id === id)) {
-              try {
-                // 1. récupérer le blob
-                const res = await fetch(`/api/file/${key}`);
-                if (!res.ok) continue;
-                const blob = await res.blob();
-                // 2. créer un File pour le hook
-                const file = new File([blob], id, { type: blob.type });
-                // 3. stocker en IndexedDB + UI
-                await addFiles([file]);
-              } catch {
-                /* ignore */
-              }
-            }
+      .then(async (serverList: { key: string; dateTaken: number }[]) => {
+        for (const item of serverList) {
+          const { key, dateTaken } = item;
+          const id = key.split("/")[1];
+          if (!photos.some((p) => p.id === id)) {
+            const res = await fetch(`/api/file/${key}`);
+            if (!res.ok) continue;
+            const blob = await res.blob();
+            await addPhotoLocal(id, blob, dateTaken);
           }
         }
-      )
+      })
       .catch(() => {
-        /* offline : on conserve ce qu’il y a en local */
+        // offline : rien à faire
       });
-  }, []);
+  }, [photos]);
 
-  // construction des groupes par date (comme avant)
+  // 2) Groupement par date inchangé
   const groups = useMemo(() => {
     const map = new Map<string, typeof photos>();
     photos.forEach((p) => {
@@ -58,7 +48,7 @@ export default function PhotosTab() {
 
   return (
     <>
-      {/* ===== Listes groupées ===== */}
+      {/* ======== photos groupées ======== */}
       <div className="photo-groups">
         {groups.map(([key, list]) => (
           <section key={key} className="photo-group">
@@ -83,7 +73,7 @@ export default function PhotosTab() {
         )}
       </div>
 
-      {/* ===== Bouton + ===== */}
+      {/* ===== bouton + ===== */}
       <button
         id="add-btn"
         aria-label="Ajouter des photos"
@@ -99,15 +89,13 @@ export default function PhotosTab() {
         hidden
         onChange={(e) => {
           if (e.target.files?.length) {
-            // 2) ajout local + cloud : usePhotos gère IndexedDB,
-            // et dans le hook on a greffé POST /api/upload + POST /api/photos
             addFiles(e.target.files);
           }
           e.target.value = "";
         }}
       />
 
-      {/* ===== Modal plein écran ===== */}
+      {/* ===== modal plein écran ===== */}
       {big &&
         createPortal(
           <div
@@ -123,7 +111,7 @@ export default function PhotosTab() {
             <button
               className="delete-btn"
               onClick={() => {
-                remove(big.id); // dans le hook on appelle DELETE /api/photos/:key + BUCKET.delete
+                remove(big.id);
                 setCurrent(null);
               }}
             >

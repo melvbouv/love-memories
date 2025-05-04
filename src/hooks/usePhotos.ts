@@ -1,95 +1,125 @@
-// src/hooks/usePhotos.ts
-import { useCallback, useEffect, useState } from "react";
-import { get, set, del, keys } from "idb-keyval";
-import * as exifr from "exifr";
+import { useState, useEffect } from "react";
 import imageCompression from "browser-image-compression";
-import { v4 as uuid } from "uuid";
+import * as exifr from "exifr";
+import * as idbKeyval from "idb-keyval";
 
 export interface Photo {
-    id: string;
-    blob: Blob;           // original (ou compressé)
-    url: string;          // objectURL pour <img>
-    dateTaken: number;    // timestamp (ms)
+  id: string;
+  url: string;
+  dateTaken: number;
 }
 
-const DB_PREFIX = "photo-";
-
 export function usePhotos() {
-    const [photos, setPhotos] = useState<Photo[]>([]);
+  const [photos, setPhotos] = useState<Photo[]>([]);
 
-    // ---------- chargement au boot ----------
-    useEffect(() => {
-        (async () => {
-            const ids = await keys();
-            const photoIds = ids.filter(
-                (k) =>
-                    String(k).startsWith(DB_PREFIX) &&      // préfixe
-                    !String(k).endsWith("-meta")            // exclut les méta-clés
-            );
-            const loaded = await Promise.all(
-                photoIds.map(async (k) => {
-                    const blob = (await get<Blob>(k))!;
-                    const id = String(k).slice(DB_PREFIX.length);
-                    const url = URL.createObjectURL(blob);
-                    const meta = (await get<Pick<Photo, "dateTaken">>(`${k}-meta`)) || {
-                        dateTaken: Date.now(),
-                    };
-                    return { id, blob, url, ...meta } as Photo;
-                })
-            );
-            loaded.sort((a, b) => a.dateTaken - b.dateTaken); // récents en bas
-            setPhotos(loaded);
-        })();
-    }, []);
+  // 1) Chargement initial depuis IndexedDB
+  useEffect(() => {
+    (async () => {
+      const list: Photo[] = [];
+      const keys = (await idbKeyval.keys()) as string[];
+      for (const id of keys) {
+        if (!id || id.endsWith("-meta")) continue;
+        const blob = await idbKeyval.get<Blob>(id);
+        if (!blob) continue;
+        const meta = await idbKeyval.get<number>(`${id}-meta`);
+        const dateTaken = meta ?? Date.now();
+        list.push({
+          id,
+          url: URL.createObjectURL(blob),
+          dateTaken,
+        });
+      }
+      list.sort((a, b) => a.dateTaken - b.dateTaken);
+      setPhotos(list);
+    })();
+  }, []);
 
-    // ---------- ajouter ----------
-    const addFiles = useCallback(async (fileList: FileList | File[]) => {
-        const files = Array.from(fileList);
-        const newPhotos: Photo[] = [];
+  // 1bis) Ajout local sans remonter au serveur (pour le sync init)
+  async function addPhotoLocal(
+    id: string,
+    blob: Blob,
+    dateTaken: number
+  ) {
+    await idbKeyval.set(id, blob);
+    await idbKeyval.set(`${id}-meta`, dateTaken);
+    setPhotos((prev) => {
+      const next = [...prev, { id, url: URL.createObjectURL(blob), dateTaken }];
+      next.sort((a, b) => a.dateTaken - b.dateTaken);
+      return next;
+    });
+  }
 
-        for (const file of files) {
-            // --- Compression ≤ 500 k o ---
-            const MAX_SIZE_MB = 0.5;             // ≈ 512 k o
-            const blob =
-                file.size > MAX_SIZE_MB * 1024 * 1024
-                    ? await imageCompression(file, {
-                        maxSizeMB: MAX_SIZE_MB,
-                        maxWidthOrHeight: 2500,      // garde une définition correcte
-                        useWebWorker: true,
-                    })
-                    : file;
-            // lecture EXIF
-            let dateTaken = Date.now();
-            try {
-                const { DateTimeOriginal } = await exifr.parse(blob, ["DateTimeOriginal"]);
-                if (DateTimeOriginal) dateTaken = DateTimeOriginal.getTime();
-            } catch {
-                dateTaken = file.lastModified; // fallback
-            }
+  // 2) Ajout de nouveaux fichiers (local + upload + KV)
+  async function addFiles(files: FileList) {
+    for (const file of Array.from(files)) {
+      // a) compression
+      const MAX_MB = 0.5;
+      const compressed =
+        file.size > MAX_MB * 1024 * 1024
+          ? await imageCompression(file, {
+              maxSizeMB: MAX_MB,
+              maxWidthOrHeight: 2048,
+              useWebWorker: true,
+            })
+          : file;
 
-            const id = uuid();
-            await set(DB_PREFIX + id, blob);
-            await set(`${DB_PREFIX + id}-meta`, { dateTaken });
-
-            newPhotos.push({
-                id,
-                blob,
-                url: URL.createObjectURL(blob),
-                dateTaken,
-            });
+      // b) extraction EXIF
+      let dateTaken = file.lastModified;
+      try {
+        const exif = await exifr.parse(compressed, ["DateTimeOriginal"]);
+        if (exif?.DateTimeOriginal) {
+          dateTaken = exif.DateTimeOriginal.getTime();
         }
+      } catch {
+        // ignore si pas d'EXIF
+      }
 
-        setPhotos((prev) =>
-            [...prev, ...newPhotos].sort((a, b) => a.dateTaken - b.dateTaken)
-        );
-    }, []);
+      // c) upload vers R2
+      const fd = new FormData();
+      fd.append("file", compressed, file.name);
+      const uploadRes = await fetch("/api/upload", {
+        method: "POST",
+        body: fd,
+      });
+      if (!uploadRes.ok) throw new Error("upload failed");
+      const { id, key } = await uploadRes.json();
 
-    // ---------- supprimer ----------
-    const remove = useCallback(async (id: string) => {
-        await del(DB_PREFIX + id);
-        await del(`${DB_PREFIX + id}-meta`);
-        setPhotos((p) => p.filter((ph) => ph.id !== id));
-    }, []);
+      // d) enregistrement KV des métadonnées
+      await fetch("/api/photos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key, dateTaken }),
+      });
 
-    return { photos, addFiles, remove };
+      // e) stockage local
+      await idbKeyval.set(id, compressed);
+      await idbKeyval.set(`${id}-meta`, dateTaken);
+
+      // f) mise à jour de l’état
+      setPhotos((prev) => {
+        const next = [
+          ...prev,
+          { id, url: `/api/file/${key}`, dateTaken },
+        ];
+        next.sort((a, b) => a.dateTaken - b.dateTaken);
+        return next;
+      });
+    }
+  }
+
+  // 3) Suppression (local + KV + R2)
+  async function remove(id: string) {
+    // a) local
+    await idbKeyval.del(id);
+    await idbKeyval.del(`${id}-meta`);
+    setPhotos((prev) => prev.filter((p) => p.id !== id));
+
+    // b) server-side
+    const key = `photos/${id}`;
+    await fetch(`/api/photos/${encodeURIComponent(key)}`, {
+      method: "DELETE",
+    });
+  }
+
+  return { photos, addFiles, remove, addPhotoLocal };
 }

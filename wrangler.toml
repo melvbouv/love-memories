@@ -15,6 +15,15 @@ binding = "MEM_KV"                   # idem : même nom que dans Pages UI
 id = "ab7a922fe39143ba87405b42d9f07ea7"   # copié depuis le tableau de bord KV
 # preview_id = "yyyyy…"  # (facultatif)
 
+[[kv_namespaces]]
+binding = "PHOTOS_KV"
+id        = "<ID_de_photos_kv>"
+
+[[kv_namespaces]]
+binding = "TODOS_KV"
+id        = "<ID_de_todos_kv>"
+
+
 # ——— Optionnel : routes locales pour pages dev ———
 [dev]
 ip = "localhost"

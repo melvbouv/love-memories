@@ -1,107 +1,69 @@
-import { useRef, useState, useMemo } from "react";
-import { createPortal } from "react-dom";
-import { usePhotos } from "../hooks/usePhotos";
-import dayjs from "dayjs";
-import "dayjs/locale/fr";    // NEW
-dayjs.locale("fr");          // NEW
+import { useEffect, useRef, useState } from "react";
 
 export default function PhotosTab() {
-  const { photos, addFiles, remove } = usePhotos();
-  const fileInput = useRef<HTMLInputElement | null>(null);
-  const [current, setCurrent] = useState<string | null>(null);
+  const [photos, setPhotos] = useState<{ key: string; dateTaken: number }[]>([]);
+  const fileInput = useRef<HTMLInputElement>(null);
 
-  // ---------- Groupe photos par journée ---------- //
-  const groups = useMemo(() => {
-    const map = new Map<string, typeof photos>();
-    photos.forEach((p) => {
-      const key = dayjs(p.dateTaken).format("YYYY-MM-DD");
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(p);
-    });
-    return Array.from(map.entries()).sort(
-      (a, b) => dayjs(a[0]).valueOf() - dayjs(b[0]).valueOf()
-    ); // ancien → récent
-  }, [photos]);
+  // 1) Charge la liste depuis KV
+  useEffect(() => {
+    fetch("/api/photos")
+      .then((r) => r.json())
+      .then(setPhotos)
+      .catch(() => {});
+  }, []);
 
-  const big = photos.find((p) => p.id === current) || null;
+  // 2) Ajout de fichiers
+  const handleAdd = async (files: FileList) => {
+    for (const file of Array.from(files)) {
+      const compressed = await /* compression 0.5MB */;
+      // upload blob → R2
+      const { key } = await fetch("/api/upload", {
+        method: "POST",
+        body: (() => {
+          const fd = new FormData();
+          fd.append("file", compressed, file.name);
+          return fd;
+        })(),
+      }).then((r) => r.json());
+      // extraire dateTaken EXIF
+      const dateTaken = await /* exifr.parse(compressed) */;
+      // enregistrer metadata
+      await fetch("/api/photos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key, dateTaken }),
+      });
+    }
+    // rechargement simplifié
+    const updated = await fetch("/api/photos").then((r) => r.json());
+    setPhotos(updated);
+  };
+
+  // 3) Suppression d’une photo
+  const handleDelete = async (key: string) => {
+    if (!confirm("Supprimer ?")) return;
+    await fetch(`/api/photos/${encodeURIComponent(key)}`, { method: "DELETE" });
+    setPhotos((p) => p.filter((x) => x.key !== key));
+  };
 
   return (
     <>
-      {/* ---------- LISTE GROUPÉE ---------- */}
-      <div className="photo-groups">
-        {groups.map(([key, list]) => (
-          <section key={key} className="photo-group">
-            <h2 className="photo-date">
-              {dayjs(key).format("D MMMM YYYY")}
-            </h2>
-
-            <div className="photo-grid">
-              {list.map((p) => (
-                <button
-                  key={p.id}
-                  className="photo-thumb"
-                  onClick={() => setCurrent(p.id)}
-                >
-                  <img src={p.url} alt="Miniature" loading="lazy" />
-                </button>
-              ))}
-            </div>
-          </section>
+      <div className="photo-grid">
+        {photos.map((p) => (
+          <button key={p.key} onClick={() => /* full screen */ null}>
+            <img src={`/api/file/${p.key}`} alt="" />
+          </button>
         ))}
-
-        {photos.length === 0 && (
-          <p style={{ padding: "1rem" }}>Aucune photo…</p>
-        )}
       </div>
-
-      {/* ---------- Bouton flottant + ---------- */}
-      <button
-        id="add-btn"
-        aria-label="Ajouter des photos"
-        onClick={() => fileInput.current?.click()}
-      >
-        +
-      </button>
+      <button onClick={() => fileInput.current?.click()}>+</button>
       <input
-        ref={fileInput}
         type="file"
-        accept="image/*"
         multiple
+        accept="image/*"
         hidden
-        onChange={(e) => {
-          if (e.target.files?.length) addFiles(e.target.files);
-          e.target.value = "";
-        }}
+        ref={fileInput}
+        onChange={(e) => e.target.files && handleAdd(e.target.files)}
       />
-
-      {/* ---------- Modal plein écran ---------- */}
-      {big &&
-        createPortal(
-          <div
-            className="modal-backdrop"
-            onClick={(e) => e.currentTarget === e.target && setCurrent(null)}
-          >
-            <figure className="photo-modal">
-              <img src={big.url} alt="Photo en grand" />
-            </figure>
-
-            <button
-              className="delete-btn"
-              onClick={() => {
-                if (window.confirm("Supprimer cette photo ?")) {
-                  remove(big.id);
-                  setCurrent(null);
-                }
-              }}
-            >
-              Supprimer
-            </button>
-            <button className="close-btn" onClick={() => setCurrent(null)}>
-              Fermer
-            </button>
-          </div>,
-          document.body
-        )}
     </>
   );
 }

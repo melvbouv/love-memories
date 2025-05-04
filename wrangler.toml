@@ -17,11 +17,11 @@ id = "ab7a922fe39143ba87405b42d9f07ea7"   # copié depuis le tableau de bord KV
 
 [[kv_namespaces]]
 binding = "PHOTOS_KV"
-id        = "<ID_de_photos_kv>"
+id        = "41552179e0a4480ea0d44aab2ea00740"
 
 [[kv_namespaces]]
 binding = "TODOS_KV"
-id        = "<ID_de_todos_kv>"
+id        = "7e801f7e338648c1998c3123ce204290"
 
 
 # ——— Optionnel : routes locales pour pages dev ———

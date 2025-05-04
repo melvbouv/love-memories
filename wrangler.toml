@@ -1,0 +1,21 @@
+name = "love-memories"               # n’a pas besoin d’être unique
+compatibility_date = "2025-05-04"    # garde la date du jour de création
+
+# ——— Pages ———
+pages_build_output_dir = "./dist"    # Vite sort ses fichiers ici
+
+# ——— R2 binding ———
+[[r2_buckets]]
+binding = "BUCKET"                   # doit matcher le binding Pages UI
+bucket_name = "love-memories"        # nom exact du bucket
+
+# ——— KV binding ———
+[[kv_namespaces]]
+binding = "MEM_KV"                   # idem : même nom que dans Pages UI
+id = "ab7a922fe39143ba87405b42d9f07ea7"   # copié depuis le tableau de bord KV
+# preview_id = "yyyyy…"  # (facultatif)
+
+# ——— Optionnel : routes locales pour pages dev ———
+[dev]
+ip = "localhost"
+port = 8788

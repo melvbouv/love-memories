@@ -62,7 +62,7 @@ export default function PhotosTab() {
                   onClick={() => setCurrent(p.id)}
                 >
                   <img
-                    src={`/api/file/${encodeURIComponent(p.id)}`} // CHANGEMENT : on charge depuis l'API
+                    src={`/api/file/${p.id}`} // CHANGEMENT : on charge depuis l'API
                     alt="Miniature"
                     loading="lazy"
                   />
@@ -106,7 +106,7 @@ export default function PhotosTab() {
           >
             <figure className="photo-modal">
               <img
-                src={`/api/file/${encodeURIComponent(big.id)}`} // CHANGEMENT : même principe ici
+                src={`/api/file/${big.id}`} // CHANGEMENT : même principe ici
                 alt="Photo en grand"
               />
             </figure>

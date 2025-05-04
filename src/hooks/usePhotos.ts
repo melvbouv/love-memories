@@ -34,6 +34,13 @@ export function usePhotos() {
 
     // ─── Ajout local sans remonter au serveur (pour sync init) ───
     async function addPhotoLocal(id: string, blob: Blob, dateTaken: number) {
+        // 👇 Vérifie si la photo existe déjà avant d'ajouter
+        const existing = photos.find((p) => p.id === id);
+        if (existing) {
+            console.log(`Photo ${id} déjà présente, on skip.`);
+            return;
+        }
+    
         await idbKeyval.set(id, blob);
         await idbKeyval.set(`${id}-meta`, dateTaken);
         setPhotos((prev) => {
@@ -100,12 +107,13 @@ export function usePhotos() {
 
     // ─── 3) Suppression corrigée (local + KV + R2) ───
     async function remove(id: string) {
-        const key = id; // Utiliser directement id comme key complète côté serveur
+        // ✅ Si id commence déjà par photos/, utilise tel quel, sinon ajoute le préfixe
+        const key = id.startsWith("photos/") ? id : `photos/${id}`;
+    
         try {
             const res = await fetch(`/api/photos/${encodeURIComponent(key)}`, { method: "DELETE" });
             if (!res.ok) throw new Error(`Échec suppression serveur : ${res.statusText}`);
-
-            // Suppression locale uniquement après succès serveur
+    
             await idbKeyval.del(id);
             await idbKeyval.del(`${id}-meta`);
             setPhotos((prev) => prev.filter((p) => p.id !== id));

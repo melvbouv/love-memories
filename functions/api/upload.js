@@ -1,24 +1,20 @@
 import { v4 as uuid } from "uuid";
 
 export const onRequestPost = async ({ env, request }) => {
-    const { BUCKET } = env;
+  const { BUCKET } = env;
+  const form = await request.formData();
+  const file = form.get("file");
+  if (!file || !(file instanceof File))
+    return new Response(JSON.stringify({ error: "file missing" }), { status: 400 });
 
-    const form = await request.formData();
-    const file = form.get("file");
-    if (!file) return new Response("file missing", { status: 400 });
+  const id  = uuid();                    // identifiant mémoire
+  const key = `photos/${id}`;            // clé R2
 
-    const id = uuid();                        // clé unique
-    const key = `photos/${id}`;
+  await BUCKET.put(key, file.stream(), {
+    httpMetadata: { contentType: file.type },
+    // optionnel : .private = false si tu veux rendre public via r2.dev
+  });
 
-    await BUCKET.put(key, file.stream(), {
-        httpMetadata: { contentType: file.type },
-    });
-
-    const url = await BUCKET.createPresignedUrl({
-        method: "GET",
-        key,
-        expires: 60 * 60 * 24 * 7,   // 7 jours
-    });
-
-    return Response.json({ id, url });
+  // on renvoie seulement la clé → le front la convertira en URL API
+  return Response.json({ id, key });
 };

@@ -26,20 +26,19 @@ export default function AddMemoryModal({ onClose, onSave }: Props) {
                 useWebWorker: true,
             });
 
-             // --- Upload vers R2 ---
-             const fd = new FormData();
-             fd.append("file", compressed, file.name || "photo.jpg");
+            const fd = new FormData();
+            fd.append("file", compressed, file.name || "photo.jpg");
             
-             try {
-               const { url } = await fetch("/api/upload", {
-                 method: "POST",
-                 body: fd,
-               }).then((r) => r.json());
+            const { key } = await fetch("/api/upload", {
+              method: "POST",
+              body: fd,
+            }).then(r => r.json());
             
-               setPhotos((prev) => [...prev, url]);   // on stocke l’URL signée
-             } catch {
-               alert("Erreur d'envoi de la photo (réseau ?)");
-             }
+            // URL accessible via notre proxy
+            const url = `/api/file/${key}`;
+            
+            setPhotos(prev => [...prev, url]);
+            
         });
     }
 

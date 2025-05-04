@@ -1,3 +1,5 @@
+// src/tabs/PhotosTab.tsx
+
 import { useRef, useState, useMemo, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { usePhotos } from "../hooks/usePhotos";
@@ -10,13 +12,12 @@ export default function PhotosTab() {
   const fileInput = useRef<HTMLInputElement | null>(null);
   const [current, setCurrent] = useState<string | null>(null);
 
-  // 1) SYNC INIT : fetch /api/photos et ne stocke que les absentes
+  // ─── 1) SYNC INIT une seule fois ───
   useEffect(() => {
     fetch("/api/photos")
       .then((r) => r.json())
       .then(async (serverList: { key: string; dateTaken: number }[]) => {
-        for (const item of serverList) {
-          const { key, dateTaken } = item;
+        for (const { key, dateTaken } of serverList) {
           const id = key.split("/")[1];
           if (!photos.some((p) => p.id === id)) {
             const res = await fetch(`/api/file/${key}`);
@@ -27,17 +28,17 @@ export default function PhotosTab() {
         }
       })
       .catch(() => {
-        // offline : rien à faire
+        /* offline : on garde le local */
       });
-  }, [photos]);
+  }, []); // ← vide = qu’une fois au montage
 
-  // 2) Groupement par date inchangé
+  // ─── 2) Groupement par date (inchangé) ───
   const groups = useMemo(() => {
     const map = new Map<string, typeof photos>();
     photos.forEach((p) => {
-      const key = dayjs(p.dateTaken).format("YYYY-MM-DD");
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(p);
+      const day = dayjs(p.dateTaken).format("YYYY-MM-DD");
+      if (!map.has(day)) map.set(day, []);
+      map.get(day)!.push(p);
     });
     return Array.from(map.entries()).sort(
       (a, b) => dayjs(a[0]).valueOf() - dayjs(b[0]).valueOf()
@@ -48,13 +49,10 @@ export default function PhotosTab() {
 
   return (
     <>
-      {/* ======== photos groupées ======== */}
       <div className="photo-groups">
-        {groups.map(([key, list]) => (
-          <section key={key} className="photo-group">
-            <h2 className="photo-date">
-              {dayjs(key).format("D MMMM YYYY")}
-            </h2>
+        {groups.map(([day, list]) => (
+          <section key={day} className="photo-group">
+            <h2 className="photo-date">{dayjs(day).format("D MMMM YYYY")}</h2>
             <div className="photo-grid">
               {list.map((p) => (
                 <button
@@ -68,17 +66,10 @@ export default function PhotosTab() {
             </div>
           </section>
         ))}
-        {photos.length === 0 && (
-          <p style={{ padding: "1rem" }}>Aucune photo…</p>
-        )}
+        {photos.length === 0 && <p style={{ padding: "1rem" }}>Aucune photo…</p>}
       </div>
 
-      {/* ===== bouton + ===== */}
-      <button
-        id="add-btn"
-        aria-label="Ajouter des photos"
-        onClick={() => fileInput.current?.click()}
-      >
+      <button id="add-btn" onClick={() => fileInput.current?.click()}>
         +
       </button>
       <input
@@ -88,26 +79,20 @@ export default function PhotosTab() {
         multiple
         hidden
         onChange={(e) => {
-          if (e.target.files?.length) {
-            addFiles(e.target.files);
-          }
+          if (e.target.files?.length) addFiles(e.target.files);
           e.target.value = "";
         }}
       />
 
-      {/* ===== modal plein écran ===== */}
       {big &&
         createPortal(
           <div
             className="modal-backdrop"
-            onClick={(e) =>
-              e.currentTarget === e.target && setCurrent(null)
-            }
+            onClick={(e) => e.currentTarget === e.target && setCurrent(null)}
           >
             <figure className="photo-modal">
               <img src={big.url} alt="" />
             </figure>
-
             <button
               className="delete-btn"
               onClick={() => {
@@ -117,10 +102,7 @@ export default function PhotosTab() {
             >
               Supprimer
             </button>
-            <button
-              className="close-btn"
-              onClick={() => setCurrent(null)}
-            >
+            <button className="close-btn" onClick={() => setCurrent(null)}>
               Fermer
             </button>
           </div>,

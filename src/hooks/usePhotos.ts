@@ -1,3 +1,5 @@
+// src/hooks/usePhotos.ts
+
 import { useState, useEffect } from "react";
 import imageCompression from "browser-image-compression";
 import * as exifr from "exifr";
@@ -12,7 +14,7 @@ export interface Photo {
 export function usePhotos() {
   const [photos, setPhotos] = useState<Photo[]>([]);
 
-  // 1) Chargement initial depuis IndexedDB
+  // ─── 1) Chargement initial depuis IndexedDB ───
   useEffect(() => {
     (async () => {
       const list: Photo[] = [];
@@ -23,23 +25,15 @@ export function usePhotos() {
         if (!blob) continue;
         const meta = await idbKeyval.get<number>(`${id}-meta`);
         const dateTaken = meta ?? Date.now();
-        list.push({
-          id,
-          url: URL.createObjectURL(blob),
-          dateTaken,
-        });
+        list.push({ id, url: URL.createObjectURL(blob), dateTaken });
       }
       list.sort((a, b) => a.dateTaken - b.dateTaken);
       setPhotos(list);
     })();
   }, []);
 
-  // 1bis) Ajout local sans remonter au serveur (pour le sync init)
-  async function addPhotoLocal(
-    id: string,
-    blob: Blob,
-    dateTaken: number
-  ) {
+  // ─── Ajout local sans remonter au serveur (pour sync init) ───
+  async function addPhotoLocal(id: string, blob: Blob, dateTaken: number) {
     await idbKeyval.set(id, blob);
     await idbKeyval.set(`${id}-meta`, dateTaken);
     setPhotos((prev) => {
@@ -49,7 +43,7 @@ export function usePhotos() {
     });
   }
 
-  // 2) Ajout de nouveaux fichiers (local + upload + KV)
+  // ─── 2) Ajout de nouveaux fichiers (local + upload + KV) ───
   async function addFiles(files: FileList) {
     for (const file of Array.from(files)) {
       // a) compression
@@ -63,7 +57,7 @@ export function usePhotos() {
             })
           : file;
 
-      // b) extraction EXIF
+      // b) EXIF dateTaken
       let dateTaken = file.lastModified;
       try {
         const exif = await exifr.parse(compressed, ["DateTimeOriginal"]);
@@ -71,10 +65,10 @@ export function usePhotos() {
           dateTaken = exif.DateTimeOriginal.getTime();
         }
       } catch {
-        // ignore si pas d'EXIF
+        // ignore
       }
 
-      // c) upload vers R2
+      // c) upload R2
       const fd = new FormData();
       fd.append("file", compressed, file.name);
       const uploadRes = await fetch("/api/upload", {
@@ -84,7 +78,7 @@ export function usePhotos() {
       if (!uploadRes.ok) throw new Error("upload failed");
       const { id, key } = await uploadRes.json();
 
-      // d) enregistrement KV des métadonnées
+      // d) enregistrer en KV
       await fetch("/api/photos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -97,28 +91,23 @@ export function usePhotos() {
 
       // f) mise à jour de l’état
       setPhotos((prev) => {
-        const next = [
-          ...prev,
-          { id, url: `/api/file/${key}`, dateTaken },
-        ];
+        const next = [...prev, { id, url: `/api/file/${key}`, dateTaken }];
         next.sort((a, b) => a.dateTaken - b.dateTaken);
         return next;
       });
     }
   }
 
-  // 3) Suppression (local + KV + R2)
+  // ─── 3) Suppression (local + KV + R2) ───
   async function remove(id: string) {
-    // a) local
+    // local
     await idbKeyval.del(id);
     await idbKeyval.del(`${id}-meta`);
     setPhotos((prev) => prev.filter((p) => p.id !== id));
 
-    // b) server-side
+    // server
     const key = `photos/${id}`;
-    await fetch(`/api/photos/${encodeURIComponent(key)}`, {
-      method: "DELETE",
-    });
+    await fetch(`/api/photos/${key}`, { method: "DELETE" });
   }
 
   return { photos, addFiles, remove, addPhotoLocal };

@@ -1,6 +1,6 @@
 export const onRequestGet = async ({ env, params }) => {
     const { BUCKET } = env;
-    const key = params.key;  // ne plus supprimer le préfixe
+    const key = decodeURIComponent(params.key);
 
     try {
       const file = await BUCKET.get(key);

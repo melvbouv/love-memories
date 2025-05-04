@@ -759,7 +759,7 @@ html, body {
 
 /* Scroll interne des tâches quand il y en a trop */
 .todo-list {
-  max-height: calc(100vh - var(--nav-height) - var(--nav-gap) - 220px);
+  max-height: calc(100vh - var(--nav-height) - var(--nav-gap) - 280px);
   overflow-y: auto;
   overscroll-behavior: contain;  /* Bonus : évite bounce iOS */
   padding-right: 4px;            /* Pour éviter que le scroll cache du texte */
@@ -772,4 +772,19 @@ html, body {
 .todo-list::-webkit-scrollbar-thumb {
   background-color: rgba(0, 0, 0, 0.2);
   border-radius: 4px;
+}
+
+.todo-card {
+  display: flex;
+  flex-direction: column;
+  /* gap: 1rem; ⬅️ on enlève ce gap global */
+}
+
+/* ajoute des marges spécifiques */
+.todo-list-wrapper {
+  margin-bottom: 0.5rem; /* petit espace avant le bouton */
+}
+
+.todo-card header {
+  margin-bottom: 0.75rem;
 }

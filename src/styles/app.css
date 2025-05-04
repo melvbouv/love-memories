@@ -756,3 +756,20 @@ html, body {
 .memory-detail .delete-btn {
   z-index: 1000;   /* > 800 => toujours visibles */
 }
+
+/* Scroll interne des tâches quand il y en a trop */
+.todo-list {
+  max-height: calc(100vh - var(--nav-height) - var(--nav-gap) - 220px);
+  overflow-y: auto;
+  overscroll-behavior: contain;  /* Bonus : évite bounce iOS */
+  padding-right: 4px;            /* Pour éviter que le scroll cache du texte */
+}
+
+.todo-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.todo-list::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}

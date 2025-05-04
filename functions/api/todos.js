@@ -1,20 +1,24 @@
+/**
+ * GET    /api/todos            → renvoie TodoCategory[]
+ * POST   /api/todos            → crée une nouvelle catégorie
+ */
 export const onRequest = async ({ env, request }) => {
-    const TODOS = env.TODOS_KV;
-  
+    const KV = env.TODOS_KV as KVNamespace;
+    // GET : lire toutes les catégories
     if (request.method === "GET") {
-      const raw = (await TODOS.get("all")) || "[]";
-      return new Response(raw, { headers: { "Content-Type": "application/json" } });
+      const raw = (await KV.get("all")) || "[]";
+      return new Response(raw, {
+        headers: { "Content-Type": "application/json" },
+      });
     }
-  
+    // POST : créer une catégorie { id, name, tasks: [] }
     if (request.method === "POST") {
-      // body = { id: "<uuid>", text: string, done: boolean }
-      const todo = await request.json();
-      const list = JSON.parse((await TODOS.get("all")) || "[]");
-      list.push(todo);
-      await TODOS.put("all", JSON.stringify(list));
+      const newCat = await request.json(); 
+      const list = JSON.parse((await KV.get("all")) || "[]");
+      list.push(newCat);
+      await KV.put("all", JSON.stringify(list));
       return new Response(null, { status: 201 });
     }
-  
     return new Response("Method Not Allowed", { status: 405 });
   };
   

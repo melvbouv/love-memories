@@ -83,7 +83,7 @@ export function usePhotos() {
                 body: fd,
             });
             if (!uploadRes.ok) throw new Error("upload failed");
-            const { id, key } = await uploadRes.json();
+            const { key } = await uploadRes.json();
 
             // d) enregistrer en KV
             await fetch("/api/photos", {

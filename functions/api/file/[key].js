@@ -1,7 +1,9 @@
 // /functions/api/file/[key].js
 export const onRequestGet = async ({ env, params }) => {
     const { BUCKET } = env;
-    const key = params.key;
+    
+    // Corrige la clé pour supprimer le préfixe "photos/"
+    const key = params.key.replace(/^photos\//, '');
   
     try {
       const file = await BUCKET.get(key);

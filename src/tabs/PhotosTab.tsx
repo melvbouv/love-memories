@@ -26,7 +26,7 @@ export default function PhotosTab() {
     <div>
       {photos.map((photo) => (
         <div key={photo.id}>
-          <img src={`/api/file/${encodeURIComponent(photo.id)}`} alt="photo" />
+          <img src={`/api/file/${encodeURIComponent(photo.id.replace('photos/', ''))}`} alt="photo" />
           <button onClick={() => remove(photo.id)}>Supprimer</button>
         </div>
       ))}

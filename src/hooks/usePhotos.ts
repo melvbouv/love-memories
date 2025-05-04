@@ -34,16 +34,14 @@ export function usePhotos() {
 
     // ─── Ajout local sans remonter au serveur (pour sync init) ───
     async function addPhotoLocal(id: string, blob: Blob, dateTaken: number) {
-        // 👇 Vérifie si la photo existe déjà avant d'ajouter
-        const existing = photos.find((p) => p.id === id);
-        if (existing) {
-            console.log(`Photo ${id} déjà présente, on skip.`);
-            return;
-        }
-
         await idbKeyval.set(id, blob);
         await idbKeyval.set(`${id}-meta`, dateTaken);
         setPhotos((prev) => {
+            // 👇 Vérifie dans la fonction setPhotos (toujours à jour)
+            if (prev.find((p) => p.id === id)) {
+                console.log(`Photo ${id} déjà présente, on skip.`);
+                return prev;
+            }
             const next = [...prev, { id, url: URL.createObjectURL(blob), dateTaken }];
             next.sort((a, b) => a.dateTaken - b.dateTaken);
             return next;

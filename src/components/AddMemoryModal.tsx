@@ -26,9 +26,20 @@ export default function AddMemoryModal({ onClose, onSave }: Props) {
                 useWebWorker: true,
             });
 
-            // on convertit le Blob compressé → dataURL pour l’afficher / stocker
-            const dataUrl = await imageCompression.getDataUrlFromFile(compressed);
-            setPhotos((prev) => [...prev, dataUrl]);
+             // --- Upload vers R2 ---
+             const fd = new FormData();
+             fd.append("file", compressed, file.name || "photo.jpg");
+            
+             try {
+               const { url } = await fetch("/api/upload", {
+                 method: "POST",
+                 body: fd,
+               }).then((r) => r.json());
+            
+               setPhotos((prev) => [...prev, url]);   // on stocke l’URL signée
+             } catch {
+               alert("Erreur d'envoi de la photo (réseau ?)");
+             }
         });
     }
 
